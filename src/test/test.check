@@ -1,0 +1,246 @@
+#include "../brick_game/tetris/tetris.h"
+#include <stdio.h>
+
+#test GeneraeteFig
+ int num = -1 ;
+ num = generateFig() ;
+ ck_assert_int_le(num, 6);
+ ck_assert_int_ge(num, 0);
+
+#test Create_figure
+    GameInfo_t matrix;
+    matrix.next = createNextFigure();
+    ck_assert_ptr_nonnull(matrix.next);
+
+#test Create_field
+    GameInfo_t matrix;
+    matrix.field = createField();
+    ck_assert_ptr_nonnull(matrix.field);
+
+#test Cleanup_game
+    GameInfo_t matrix;
+    matrix.next = createNextFigure();
+    matrix.field = createField();
+    cleanupGame(&matrix);
+    ck_assert_ptr_null(matrix.next);
+    ck_assert_ptr_null(matrix.field);
+
+#test Read_high_score
+    int score = -5;  
+    score = readHighScore("test_score.txt");
+    ck_assert_int_ge(score, 0);
+
+#test Initialize_game
+    GameInfo_t matrix;
+    initializeGame(&matrix, "test_score.txt");
+    ck_assert_ptr_nonnull(matrix.next);
+    ck_assert_ptr_nonnull(matrix.field);
+    ck_assert_int_ge(matrix.high_score, 0);
+    ck_assert_int_eq(matrix.score, START_SCORE);
+    ck_assert_int_eq(matrix.level, LVL_START);
+    ck_assert_int_eq(matrix.speed, START_SPEED);
+    ck_assert_int_eq(matrix.pause, false);
+    ck_assert_int_le(matrix.next_fig, 6);
+    ck_assert_int_ge(matrix.next_fig, 0);
+    cleanupGame(&matrix);
+
+#test Place_figure
+    GameInfo_t matrix;
+    initializeGame(&matrix, "test_score.txt");
+    TetFigure block = placeFigure(&matrix);
+    ck_assert_int_ne(block.size, 0);
+    cleanupGame(&matrix);
+
+#test User_input
+    GameInfo_t matrix;
+    initializeGame(&matrix, "test_score.txt");
+    TetFigure block = placeFigure(&matrix);
+    UserAction_t delaem = 2;
+    bool bezhit = userInput(delaem, &block, &matrix);
+    ck_assert_int_eq(bezhit, 0);
+    delaem = 4;
+    bezhit = userInput(delaem, &block, &matrix);
+    ck_assert_int_eq(bezhit, 1);
+    delaem = 3;
+    bezhit = userInput(delaem, &block, &matrix);
+    delaem = 5;
+    bezhit = userInput(delaem, &block, &matrix);
+    delaem = 7;
+    bezhit = userInput(delaem, &block, &matrix);
+    delaem = 6;
+    bezhit = userInput(delaem, &block, &matrix);
+    ck_assert_int_eq(matrix.speed, 10);
+    delaem = 1;
+    bezhit = userInput(delaem, &block, &matrix);
+    ck_assert_int_eq(matrix.pause, 1);
+    delaem = 1;
+    bezhit = userInput(delaem, &block, &matrix);
+    ck_assert_int_eq(matrix.pause, 0);
+    delaem = 1;
+    bezhit = userInput(delaem, &block, &matrix);
+    delaem = 0;
+    bezhit = userInput(delaem, &block, &matrix);
+    bezhit = userInput(delaem, &block, &matrix);
+    ck_assert_int_eq(matrix.pause, 0);
+    cleanupGame(&matrix);
+
+#test Clear_full_rows
+    GameInfo_t matrix;
+    initializeGame(&matrix, "test_score.txt");
+    for (int y = HEIGHT; y >= 2; y--) 
+    for (int x = 0; x < WIDTH; x++) 
+    matrix.field[y][x] = 1;
+
+    clearFullRows(&matrix);
+    ck_assert_int_eq(matrix.score, 0);//
+    cleanupGame(&matrix);
+
+#test Place_figure_on_field
+    GameInfo_t matrix;
+    initializeGame(&matrix, "test_score.txt");
+    TetFigure block = placeFigure(&matrix);
+    placeFigureOnField(&matrix, &block);
+    int answ = 0;
+    for (int i = 0; i < WIDTH; i++) 
+        for (int j = 0; j < HEIGHT; j++){
+        int fx = block.x + j;
+        int fy = block.y + i;
+        if (matrix.field[fy][fx] == 1)
+        answ = 1; 
+    }
+    ck_assert_int_eq(answ, 1);
+    cleanupGame(&matrix);
+
+#test Leveling
+    GameInfo_t matrix;
+    matrix.score = 1800;
+    matrix = *leveling(&matrix);
+    ck_assert_int_eq(matrix.speed, 325);
+
+#test Write_high_score
+    readHighScore("test_score.txt");
+    writeHighScore("test_score.txt", 600);
+    int ans = readHighScore("test_score.txt");
+    ck_assert_int_eq(ans, 600);
+
+#test Draw_figure
+    GameInfo_t matrix;
+    initializeGame(&matrix, "test_score.txt");
+    TetFigure block = placeFigure(&matrix);
+    drawFigure(&matrix, &block);
+    int answ = 0;
+   for (int i = 1; i <HEIGHT; i++) 
+        for (int j = 0; j <WIDTH  ; j++){
+        int fx = block.x + j;
+        int fy = block.y + i;
+        if (matrix.field[fy][fx] == 1)
+        answ = 1; 
+    }
+    ck_assert_int_eq(answ, 1);
+    cleanupGame(&matrix);
+
+#test Wash_trace_figure
+    GameInfo_t matrix;
+    initializeGame(&matrix, "test_score.txt");
+    TetFigure block = {.blocks = {{{1, 1, 1, 1}, {1, 1, 1, 1}, {1, 1, 1, 1}, {1, 1, 1, 1}},
+                                  {{1, 1, 1, 1}, {1, 1, 1, 1}, {1, 1, 1, 1}, {1, 1, 1, 1}},
+                                  {{1, 1, 1, 1}, {1, 1, 1, 1}, {1, 1, 1, 1}, {1, 1, 1, 1}},
+                                  {{1, 1, 1, 1}, {1, 1, 1, 1}, {1, 1, 1, 1}, {1, 1, 1, 1}}},
+     .currentState = 0,
+     .size = 4};
+    drawFigure(&matrix, &block);
+    washTraceFigure (&matrix, &block);
+    int answ = 2;
+    for (int i = 1; i <HEIGHT; i++) 
+        for (int j = 0; j <WIDTH  ; j++){
+            if (block.blocks[block.currentState][i][j] != 0) {
+        int fx = block.x + j + (WIDTH / 2) - 2;
+        int fy = block.y + i + SDWIG;
+        if (matrix.field[fy][fx] == 1)
+        answ = 0; 
+            }
+    }
+    ck_assert_int_eq(answ, 2);
+    cleanupGame(&matrix);
+
+#test Move_figure_down
+    GameInfo_t matrix;
+    initializeGame(&matrix, "test_score.txt");
+    TetFigure block = placeFigure(&matrix);
+    TetFigure block2 = block;
+    bool ans = moveFigureDown(&matrix, &block);
+    ck_assert_int_eq(ans, 1);
+    ck_assert_int_eq(block2.y +1 , block.y);
+    cleanupGame(&matrix);
+
+#test Move_right
+    GameInfo_t matrix;
+    initializeGame(&matrix, "test_score.txt");
+    TetFigure block = placeFigure(&matrix);
+    TetFigure block2 = block; 
+    block = *moveRight(&matrix, &block);
+    ck_assert_int_eq(block2.x +1 , block.x);
+    cleanupGame(&matrix);
+
+#test Move_left 
+    GameInfo_t matrix;
+    initializeGame(&matrix, "test_score.txt");
+    TetFigure block = placeFigure(&matrix);
+    TetFigure block2 = block; 
+    block = *moveLeft(&matrix, &block);
+    ck_assert_int_eq(block2.x -1 , block.x);
+    cleanupGame(&matrix);
+
+#test Handle_rotation
+    GameInfo_t matrix;
+    initializeGame(&matrix, "test_score.txt");
+    TetFigure block =  {.blocks = {{{1, 1, 1, 1}, {1, 1, 1, 1}, {1, 1, 1, 1}, {1, 1, 1, 1}},
+                        {{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}},
+                        {{1, 1, 1, 1}, {1, 1, 1, 1}, {1, 1, 1, 1}, {1, 1, 1, 1}},
+                        {{1, 1, 1, 1}, {1, 1, 1, 1}, {1, 1, 1, 1}, {1, 1, 1, 1}}},
+    .currentState = 0,
+    .size = 4};
+    int answ = 2;
+    block = *handleRotation(&matrix, &block);
+     for (int i = 1; i <HEIGHT; i++) 
+        for (int j = 0; j <WIDTH  ; j++){
+            if (block.blocks[block.currentState][i][j] != 0) {
+        int fx = j ;
+        int fy = i ;
+        if (matrix.field[fy][fx] == 1)
+        answ = 0; 
+            }
+    }
+    ck_assert_int_eq(answ, 2);
+    cleanupGame(&matrix);
+
+#test Can_rotate
+    GameInfo_t matrix;
+    initializeGame(&matrix, "test_score.txt");
+    TetFigure block =  {.blocks = {{{1, 1, 1, 1}, {1, 1, 1, 1}, {1, 1, 1, 1}, {1, 1, 1, 1}},
+                        {{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}},
+                        {{1, 1, 1, 1}, {1, 1, 1, 1}, {1, 1, 1, 1}, {1, 1, 1, 1}},
+                        {{1, 1, 1, 1}, {1, 1, 1, 1}, {1, 1, 1, 1}, {1, 1, 1, 1}}},
+    .currentState = 0,
+    .size = 4};
+    bool answ = false;
+    answ = canRotate(matrix, block);
+    ck_assert_int_eq(answ, 1);
+    cleanupGame(&matrix);
+
+#test Check_collision
+       GameInfo_t matrix;
+    initializeGame(&matrix, "test_score.txt");
+    TetFigure block =  {.blocks = {{{1, 1, 1, 1}, {1, 1, 1, 1}, {1, 1, 1, 1}, {1, 1, 1, 1}},
+                        {{0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}},
+                        {{1, 1, 1, 1}, {1, 1, 1, 1}, {1, 1, 1, 1}, {1, 1, 1, 1}},
+                        {{1, 1, 1, 1}, {1, 1, 1, 1}, {1, 1, 1, 1}, {1, 1, 1, 1}}},
+    .currentState = 0,
+    .size = 4};
+    bool answ = false;
+    answ = checkCollision(matrix, block, 20, 20);
+      ck_assert_int_eq(answ, 0);
+    answ = checkCollision(matrix, block, 0, -3);
+    ck_assert_int_eq(answ, 1);
+
+    cleanupGame(&matrix);
